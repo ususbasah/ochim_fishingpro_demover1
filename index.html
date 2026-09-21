@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Ochim Pro - Simulasi Memancing</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow:hidden;height:100%;width:100%;position:fixed;top:0;left:0}
+body{display:flex;flex-direction:column}
+header{background:linear-gradient(135deg,#0f3460,#16213e);padding:6px 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:2px solid #e94560}
+header h1{font-size:1em;color:#e94560;white-space:nowrap}
+.hud{display:flex;gap:6px;align-items:center;font-size:.75em;flex-wrap:wrap}
+.hud span{background:rgba(0,0,0,.3);padding:2px 6px;border-radius:10px;white-space:nowrap}
+.hud b{color:#ffd700}
+.btn{background:#e94560;border:none;color:#fff;padding:4px 10px;border-radius:8px;cursor:pointer;font-size:.7em;transition:.2s;white-space:nowrap}
+.btn:hover{background:#c73650;transform:scale(1.05)}
+.btn:disabled{background:#555;cursor:default;transform:none}
+main{flex:1;position:relative;overflow:hidden;min-height:0}
+canvas{width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+#locBar{position:absolute;top:4px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:5;max-width:98%}
+.loc{background:rgba(0,0,0,.6);border:1px solid #555;padding:3px 8px;border-radius:8px;font-size:.65em;cursor:pointer;transition:.2s;color:#ccc;white-space:nowrap}
+.loc:hover{border-color:#e94560;color:#fff}
+.loc.active{background:#e94560;border-color:#e94560;color:#fff}
+#controls{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;z-index:5}
+#actionBtn{padding:10px 32px;font-size:1em;border-radius:12px;font-weight:bold;transition:.15s}
+#powerWrap{position:absolute;bottom:50px;left:50%;transform:translateX(-50%);width:min(200px,70vw);height:16px;background:rgba(0,0,0,.6);border-radius:8px;overflow:hidden;display:none;z-index:5;border:1px solid #555}
+#powerBar{height:100%;width:0%;background:linear-gradient(90deg,#00ff88,#ffcc00,#ff3333);transition:none;border-radius:8px}
+#msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:min(1.4em,4vw);font-weight:bold;text-shadow:0 0 20px rgba(0,0,0,.8);text-align:center;pointer-events:none;z-index:4;opacity:0;transition:opacity .3s;padding:0 10px}
+#bars{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:none;flex-direction:column;gap:6px;z-index:5}
+.barContainer{display:flex;flex-direction:column;align-items:center;gap:2px}
+.barTitle{font-size:min(.65em,2.5vw);font-weight:bold;text-align:center;text-shadow:0 0 6px rgba(0,0,0,.9);letter-spacing:1px}
+.barWrap{width:30px;height:min(180px,40vh);background:rgba(0,0,0,.7);border-radius:15px;overflow:hidden;position:relative;border:2px solid #555}
+.barFill{position:absolute;bottom:0;width:100%;transition:height .15s;border-radius:0 0 13px 13px}
+.barValue{position:absolute;width:100%;text-align:center;bottom:4px;font-size:.6em;font-weight:bold;text-shadow:0 0 4px #000;z-index:2}
+#distWrap{position:absolute;left:8px;top:50%;transform:translateY(-50%);display:none;z-index:5}
+#distWrap .barWrap{height:min(180px,40vh)}
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:10}
+.modalBox{background:linear-gradient(135deg,#16213e,#0f3460);border:2px solid #e94560;border-radius:16px;padding:16px;max-width:420px;width:92%;max-height:80vh;overflow-y:auto}
+.modalBox h2{color:#e94560;margin-bottom:8px;text-align:center;font-size:1.1em}
+.modalBox p{font-size:.85em;margin:4px 0;line-height:1.5}
+.modalBox table{width:100%;border-collapse:collapse;margin:6px 0}
+.modalBox th,.modalBox td{padding:4px 6px;text-align:left;border-bottom:1px solid #333;font-size:.75em}
+.modalBox th{color:#e94560}
+.closeModal{margin-top:10px;width:100%;padding:8px}
+.shopItem{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #333}
+.shopItem .info{flex:1}
+.shopItem .info small{color:#aaa;font-size:.7em}
+.shopItem .buy{margin-left:6px;flex-shrink:0}
+.fishRow{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #222;font-size:.8em}
+.fishRow.caught{color:#4fc3f7}
+.fishRow.notcaught{color:#555}
+.baitChip{background:rgba(0,0,0,.5);border:1px solid #555;padding:3px 8px;border-radius:8px;font-size:.7em;cursor:pointer;color:#ccc;transition:.2s}
+.baitChip:hover{border-color:#4fc3f7}
+.baitChip.active{background:#4fc3f7;border-color:#4fc3f7;color:#000}
+.fightHint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:min(.8em,3vw);color:#ddd;text-align:center;z-index:5;display:none;background:rgba(0,0,0,.7);padding:8px 14px;border-radius:10px;line-height:1.4;border:1px solid rgba(255,255,255,.1);max-width:90%}
+#cancelBtn{position:absolute;bottom:40%;left:22%;z-index:6;display:none;background:#e94560;font-size:.75em;padding:6px 12px;touch-action:manipulation}
+#rotateOverlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#1a1a2e;z-index:999;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+#rotateOverlay .icon{font-size:4em;margin-bottom:16px;animation:rotatePhone 2s ease-in-out infinite}
+#rotateOverlay p{color:#ccc;font-size:1.1em;margin:4px 0}
+#rotateOverlay small{color:#888;font-size:.8em}
+@keyframes rotatePhone{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
+@media (orientation:portrait) and (max-width:900px){
+  #rotateOverlay{display:flex}
+  header,main,#locBar,#powerWrap,#bars,#distWrap,#msg,.fightHint{display:none!important}
+}
+@media (orientation:landscape) and (max-width:900px){
+  #rotateOverlay{display:none}
+}
+</style>
+</head>
+<body>
+<div id="rotateOverlay">
+  <div class="icon">📱</div>
+  <p><b>Mohon Putar Handphone!</b></p>
+  <p>Game ini dimainkan secara horizontal</p>
+  <small>Putar HP ke samping untuk bermain</small>
+</div>
+<header>
+  <h1>Ochim Pro</h1>
+  <div class="hud">
+    <span>Rp <b id="hMoney">1000</b></span>
+    <span>Umpan: <b id="hBait">10</b></span>
+    <span>Joran Lv.<b id="hRod">1</b></span>
+    <span>Gulungan Lv.<b id="hReel">1</b></span>
+    <span>Ikan: <b id="hFish">0</b></span>
+    <span style="background:rgba(0,0,0,.3);padding:3px 10px;border-radius:12px">Kesulitan: <b id="hDiff" style="color:#ffcc00">Sedang</b></span>
+  </div>
+  <button class="btn" onclick="cycleDifficulty()">Ganti Kesulitan</button>
+  <button class="btn" onclick="openShop()">Toko</button>
+  <button class="btn" onclick="openBag()">Karavan</button>
+  <button class="btn" onclick="openAlbum()">Album Ikan</button>
+  <button class="btn" onclick="openHowTo()">Cara Bermain</button>
+  <button class="btn" onclick="openReset()" style="background:#333;font-size:.7em">Reset</button>
+  <button class="btn" onclick="openCheat()" style="background:#555;font-size:.7em">Cheat</button>
+  <button class="btn" onclick="doExit()" style="background:#222;font-size:.7em">Keluar</button>
+</header>
+<main>
+  <div id="locBar"></div>
+  <canvas id="gc"></canvas>
+  <div id="powerWrap"><div id="powerBar"></div></div>
+  <div id="msg"></div>
+  <div id="bars">
+    <div class="barContainer">
+      <div class="barTitle" style="color:#ff6644">TEGANGAN</div>
+      <div class="barWrap"><div class="barFill" id="tensionFill" style="background:#44ff44"></div><div class="barValue" id="tensionVal" style="color:#fff">0%</div></div>
+    </div>
+    <div class="barContainer">
+      <div class="barTitle" style="color:#00ccff">PROGRES</div>
+      <div class="barWrap"><div class="barFill" id="progressFill" style="background:#00ccff"></div><div class="barValue" id="progressVal" style="color:#fff">0%</div></div>
+    </div>
+  </div>
+  <div id="distWrap">
+    <div class="barContainer">
+      <div class="barTitle" style="color:#ffaa00">JARAK</div>
+      <div class="barWrap"><div class="barFill" id="distFill" style="background:#ffaa00"></div><div class="barValue" id="distVal" style="color:#fff">60%</div></div>
+    </div>
+  </div>
+  <div class="fightHint" id="fightHint"></div>
+  <button id="cancelBtn" class="btn" onclick="cancelCast()">Tarik Pancing</button>
+</main>
+
+<script>
+const canvas = document.getElementById('gc');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  const r = canvas.parentElement.getBoundingClientRect();
+  W = canvas.width = r.width * devicePixelRatio;
+  H = canvas.height = r.height * devicePixelRatio;
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+}
+resize();
+window.addEventListener('resize', resize);
+const cW = () => canvas.width / devicePixelRatio;
+const cH = () => canvas.height / devicePixelRatio;
+
+const LOCATIONS = [
+  {id:'lake', name:'Danau Tenang', skyTop:'#87ceeb', skyBot:'#b0e0e6', waterTop:'#2e8b57', waterBot:'#1a5276', hill:'#2d5016'},
+  {id:'river', name:'Sungai Deras', skyTop:'#c9a96e', skyBot:'#e8d5a3', waterTop:'#5d4e37', waterBot:'#3e2723', hill:'#4a3728'},
+  {id:'sea', name:'Laut Lepas', skyTop:'#1565c0', skyBot:'#42a5f5', waterTop:'#0d47a1', waterBot:'#002171', hill:'#1b3a4b'}
+];
+
+const BAITS = [
+  {id:'cacing', name:'Cacing', price:50, desc:'Umpan dasar'},
+  {id:'jagung', name:'Jagung', price:80, desc:'Suka untuk ikan mas'},
+  {id:'udang', name:'Udang', price:150, desc:'Ikan predator suka'},
+  {id:'sarden', name:'Sarden', price:250, desc:'Ikan laut besar'}
+];
+
+const RODS = [
+  {id:1, name:'Bambu', price:0, power:1, hookBonus:0, desc:'Starter'},
+  {id:2, name:'Fiber', price:5000, power:1.3, hookBonus:0.1, desc:'+30% power'},
+  {id:3, name:'Karbon', price:15000, power:1.6, hookBonus:0.2, desc:'+60% power'},
+  {id:4, name:'Pro-Lite', price:40000, power:2, hookBonus:0.3, desc:'100% power'}
+];
+
+const REELS = [
+  {id:1, name:'Dasar', price:0, retrieve:1, maxTension:1.0},
+  {id:2, name:'Perak', price:4000, retrieve:1.3, maxTension:1.4},
+  {id:3, name:'Emas', price:12000, retrieve:1.6, maxTension:1.8},
+  {id:4, name:'Titan', price:35000, retrieve:2, maxTension:2.4}
+];
+
+const DIFFICULTIES = [
+  {id:'easy', name:'Mudah', color:'#44ff44', multStr:0.6, multTension:0.7, biteMult:2, hookBonus:0.2, priceMult:0.8, pullMult:0.7, desc:'Santai, cocok untuk pemula'},
+  {id:'normal', name:'Sedang', color:'#ffcc00', multStr:1, multTension:1, biteMult:1, hookBonus:0, priceMult:1, pullMult:1, desc:'Standar, tantangan seimbang'},
+  {id:'hard', name:'Sulit', color:'#ff8800', multStr:1.3, multTension:1.4, biteMult:0.6, hookBonus:-0.1, priceMult:1.5, pullMult:1.4, desc:'Butuh strategi dan timing'},
+  {id:'extreme', name:'Extreme', color:'#ff2222', multStr:1.8, multTension:2, biteMult:0.3, hookBonus:-0.2, priceMult:2.5, pullMult:1.8, desc:'Hanya untuk profesional!'}
+];
+
+const FISH = [
+  {id:'nila', name:'Ikan Nila', loc:'lake', rarity:'common', weight:[0.3,1.5], priceKg:2000, strength:2, baits:['cacing','jagung']},
+  {id:'mujair', name:'Ikan Mujair', loc:'lake', rarity:'common', weight:[0.2,1], priceKg:1800, strength:1.5, baits:['cacing','jagung']},
+  {id:'lele', name:'Lele', loc:'lake', rarity:'common', weight:[0.5,2.5], priceKg:2500, strength:3, baits:['cacing','udang']},
+  {id:'mas', name:'Ikan Mas', loc:'lake', rarity:'uncommon', weight:[0.8,3], priceKg:4000, strength:2.5, baits:['jagung','cacing']},
+  {id:'gabus', name:'Ikan Gabus', loc:'lake', rarity:'rare', weight:[1,4], priceKg:6000, strength:4, baits:['udang','sarden']},
+  {id:'gurame', name:'Gurame', loc:'lake', rarity:'epic', weight:[2,6], priceKg:10000, strength:5, baits:['jagung','udang']},
+  {id:'patin', name:'Patin Raksasa', loc:'lake', rarity:'legendary', weight:[5,12], priceKg:15000, strength:7, baits:['udang','sarden']},
+
+  {id:'wader', name:'Ikan Wader', loc:'river', rarity:'common', weight:[0.1,0.5], priceKg:1500, strength:1, baits:['cacing','jagung']},
+  {id:'tawes', name:'Ikan Tawes', loc:'river', rarity:'common', weight:[0.3,1.2], priceKg:2000, strength:2, baits:['cacing','jagung']},
+  {id:'jelawat', name:'Jelawat', loc:'river', rarity:'uncommon', weight:[0.8,3], priceKg:5000, strength:3.5, baits:['jagung','udang']},
+  {id:'semarang', name:'Ikan Semah', loc:'river', rarity:'rare', weight:[1.5,5], priceKg:8000, strength:5, baits:['udang','sarden']},
+  {id:'belida', name:'Belida', loc:'river', rarity:'epic', weight:[2,7], priceKg:12000, strength:6, baits:['sarden','udang']},
+  {id:'tombro', name:'Tombro Raksasa', loc:'river', rarity:'legendary', weight:[5,15], priceKg:18000, strength:8, baits:['jagung','sarden']},
+
+  {id:'kembung', name:'Ikan Kembung', loc:'sea', rarity:'common', weight:[0.2,0.8], priceKg:2000, strength:2, baits:['sarden','udang']},
+  {id:'layang', name:'Ikan Layang', loc:'sea', rarity:'common', weight:[0.3,1.5], priceKg:2200, strength:2, baits:['sarden','udang']},
+  {id:'kakap', name:'Kakap Merah', loc:'sea', rarity:'uncommon', weight:[1,4], priceKg:7000, strength:4, baits:['udang','sarden']},
+  {id:'kerapu', name:'Kerapu', loc:'sea', rarity:'rare', weight:[1.5,6], priceKg:11000, strength:5.5, baits:['udang','sarden']},
+  {id:'cakalang', name:'Cakalang', loc:'sea', rarity:'epic', weight:[3,10], priceKg:15000, strength:7, baits:['sarden']},
+  {id:'marlin', name:'Marlin Biru', loc:'sea', rarity:'legendary', weight:[8,30], priceKg:22000, strength:9, baits:['sarden']}
+];
+
+const RARITY_W = {common:100, uncommon:40, rare:15, epic:5, legendary:1.5};
+const RARITY_CLR = {common:'#aaa', uncommon:'#4fc3f7', rare:'#ffd700', epic:'#e040fb', legendary:'#ff5722'};
+
+let player = {
+  money:1000, baitCount:10, rodId:1, reelId:1, baitId:'cacing', difficulty:1,
+  ownedRods:[1], ownedReels:[1],
+  bag:[], album:{}, fishCount:0, currentLoc:0
+};
+
+let state = 'idle';
+let castPower = 0, castDir = 1;
+let bobberX = 0, bobberY = 0, bobberVY = 0;
+let biteTimer = 0, biteWindow = 0;
+let pendingFish = null, fishWeight = 0;
+let tension = 0, progress = 0, fishDist = 0;
+let fishPulling = false, fishPullTimer = 0, fishRestTimer = 0;
+let reeling = false;
+let msgTimer = 0;
+let time = 0;
+let waterOffset = 0;
+let ripples = [];
+let castAnim = 0, castTargetX = 0;
+
+function save() { try { localStorage.setItem('ochimpro', JSON.stringify(player)); } catch(e){} }
+function load() { try { const d = JSON.parse(localStorage.getItem('ochimpro')); if(d) Object.assign(player, d); } catch(e){} }
+
+function loc() { return LOCATIONS[player.currentLoc]; }
+function rod() { return RODS[player.rodId-1]; }
+function reel() { return REELS[player.reelId-1]; }
+function bait() { return BAITS.find(b=>b.id===player.baitId); }
+function currentBaits() { return BAITS.filter(b=>b.id===player.baitId); }
+function diff() { return DIFFICULTIES[player.difficulty]; }
+
+function showMsg(txt, dur=2000) {
+  const el = document.getElementById('msg');
+  el.textContent = txt;
+  el.style.opacity = '1';
+  msgTimer = dur;
+}
+
+function updateHUD() {
+  document.getElementById('hMoney').textContent = player.money.toLocaleString('id');
+  document.getElementById('hBait').textContent = player.baitCount;
+  document.getElementById('hRod').textContent = player.rodId;
+  document.getElementById('hReel').textContent = player.reelId;
+  document.getElementById('hFish').textContent = player.fishCount;
+  const d = diff();
+  const hDiff = document.getElementById('hDiff');
+  hDiff.textContent = d.name;
+  hDiff.style.color = d.color;
+}
+
+function buildLocBar() {
+  const bar = document.getElementById('locBar');
+  bar.innerHTML = '';
+  LOCATIONS.forEach((l,i) => {
+    const d = document.createElement('div');
+    d.className = 'loc' + (i===player.currentLoc?' active':'');
+    d.textContent = l.name;
+    d.onclick = () => {
+      if(state==='idle' || state==='waiting' || state==='bite') {
+        if(state==='waiting' || state==='bite') {
+          state = 'idle';
+          ripples = [];
+          document.getElementById('cancelBtn').style.display = 'none';
+        }
+        player.currentLoc=i;
+        buildLocBar();
+      }
+    };
+    bar.appendChild(d);
+  });
+  const sep = document.createElement('span');
+  sep.style.cssText = 'color:#555;margin:0 4px';
+  sep.textContent = '|';
+  bar.appendChild(sep);
+  DIFFICULTIES.forEach((df,i) => {
+    const d = document.createElement('div');
+    d.className = 'loc' + (i===player.difficulty?' active':'');
+    d.style.borderColor = i===player.difficulty ? df.color : '';
+    if(i===player.difficulty) d.style.background = df.color;
+    d.style.color = i===player.difficulty ? '#000' : df.color;
+    d.textContent = df.name;
+    d.onclick = () => { if(state==='idle'){ player.difficulty=i; updateHUD(); buildLocBar(); save(); }; };
+    bar.appendChild(d);
+  });
+}
+
+function cycleDifficulty() {
+  if(state!=='idle') return;
+  player.difficulty = (player.difficulty + 1) % DIFFICULTIES.length;
+  updateHUD();
+  buildLocBar();
+  save();
+  showMsg('Kesulitan: ' + diff().name, 1500);
+}
+
+function pickFish() {
+  const locId = loc().id;
+  const bId = player.baitId;
+  const pool = FISH.filter(f => f.loc===locId && f.baits.includes(bId));
+  if(!pool.length) return null;
+  let totalW = pool.reduce((s,f)=>s+RARITY_W[f.rarity],0);
+  let r = Math.random()*totalW;
+  for(const f of pool) {
+    r -= RARITY_W[f.rarity];
+    if(r<=0) return f;
+  }
+  return pool[0];
+}
+
+function randWeight(f) {
+  return f.weight[0] + Math.random()*(f.weight[1]-f.weight[0]);
+}
+
+function fightParams() {
+  const f = pendingFish;
+  const r = reel();
+  const d = diff();
+  const baseEffort = f.strength / r.maxTension;
+  const effort = baseEffort * d.multStr;
+  const speed = r.retrieve;
+  const cap = r.maxTension * d.multTension;
+  return { effort, speed, cap };
+}
+
+function startCast() {
+  if(state!=='idle') return;
+  if(player.baitCount<=0){ showMsg('Umpan habis! Beli di Toko'); return; }
+  state = 'casting';
+  castPower = 0;
+  castDir = 1;
+  document.getElementById('powerWrap').style.display = 'block';
+  document.getElementById('cancelBtn').style.display = 'block';
+}
+
+function doCast() {
+  player.baitCount--;
+  updateHUD();
+  document.getElementById('powerWrap').style.display = 'none';
+  const p = castPower / 100;
+  const maxDist = cW() * 0.7;
+  const dist = maxDist * p * rod().power;
+  bobberX = 200 + dist;
+  bobberY = cH() * 0.55;
+  castTargetX = bobberX;
+  castAnim = 0.5;
+  state = 'waiting';
+  document.getElementById('cancelBtn').style.display = 'block';
+  pendingFish = pickFish();
+  fishWeight = pendingFish ? randWeight(pendingFish) : 0;
+  const d = diff();
+  biteTimer = (2000 + Math.random()*5000) / d.biteMult;
+  biteTimer += pendingFish && (pendingFish.rarity==='epic'||pendingFish.rarity==='legendary') ? 3000/d.biteMult : 0;
+  biteWindow = 0;
+  ripples = [];
+  showMsg('Menunggu...');
+}
+
+function doHook() {
+  if(state!=='bite') return;
+  const r = reel();
+  const d = diff();
+  const chance = Math.min(0.95, 0.55 + rod().hookBonus + r.retrieve*0.1 + d.hookBonus);
+  if(Math.random() < chance) {
+    state = 'fighting';
+    tension = 0;
+    progress = 0;
+    fishDist = 0.6;
+    fishPulling = false;
+    fishPullTimer = 800 + Math.random()*1500;
+    fishRestTimer = 0;
+    reeling = false;
+    document.getElementById('bars').style.display = 'flex';
+    document.getElementById('distWrap').style.display = 'block';
+    showMsg(pendingFish.name + ' tersangkut!', 1500);
+  } else {
+    state = 'idle';
+    document.getElementById('cancelBtn').style.display = 'none';
+    showMsg('Ikan lepas!', 1500);
+  }
+  document.getElementById('msg').style.opacity = '1';
+}
+
+function catchFish() {
+  state = 'idle';
+  document.getElementById('bars').style.display = 'none';
+  document.getElementById('distWrap').style.display = 'none';
+  document.getElementById('fightHint').style.display = 'none';
+  document.getElementById('cancelBtn').style.display = 'none';
+  const f = pendingFish;
+  const w = fishWeight.toFixed(2);
+  const baseVal = Math.round(fishWeight * f.priceKg);
+  const val = Math.round(baseVal * diff().priceMult);
+  const xp = Math.round(val * 0.1);
+  player.fishCount++;
+  if(!player.album[f.id]) player.album[f.id] = {best:0, total:0, totalVal:0};
+  player.album[f.id].best = Math.max(player.album[f.id].best, fishWeight);
+  player.album[f.id].total++;
+  player.album[f.id].totalVal += val;
+  player.bag.push({name:f.name, weight:fishWeight, value:val, rarity:f.rarity});
+  updateHUD();
+  save();
+  showCatchModal(f, fishWeight, val);
+}
+
+function lineBreak() {
+  state = 'idle';
+  document.getElementById('bars').style.display = 'none';
+  document.getElementById('distWrap').style.display = 'none';
+  document.getElementById('fightHint').style.display = 'none';
+  document.getElementById('cancelBtn').style.display = 'none';
+  showMsg('Senar putus!', 2000);
+}
+
+function fishEscape() {
+  state = 'idle';
+  document.getElementById('bars').style.display = 'none';
+  document.getElementById('distWrap').style.display = 'none';
+  document.getElementById('fightHint').style.display = 'none';
+  document.getElementById('cancelBtn').style.display = 'none';
+  showMsg('Ikan melarikan diri!', 2000);
+}
+
+function showCatchModal(f, w, val) {
+  const existing = document.querySelector('.modal');
+  if(existing) existing.remove();
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.innerHTML = `<div class="modalBox">
+    <h2>IKAN TERTANGKAP!</h2>
+    <p style="text-align:center;color:${RARITY_CLR[f.rarity]};font-size:1.3em;font-weight:bold">${f.name}</p>
+    <p style="text-align:center;text-transform:capitalize">Rarity: ${f.rarity}</p>
+    <p style="text-align:center;font-size:1.5em"><b>${w} kg</b></p>
+    <p style="text-align:center">Nilai: <b style="color:#ffd700">Rp ${val.toLocaleString('id')}</b> <small style="color:${diff().color}">(${diff().name} x${diff().priceMult})</small></p>
+    <button class="btn closeModal" onclick="sellFish(this,${val})">Jual Langsung (+Rp ${val.toLocaleString('id')})</button>
+    <button class="btn closeModal" style="background:#333;margin-top:6px" onclick="this.closest('.modal').remove()">Simpan di Karavan</button>
+  </div>`;
+  document.body.appendChild(m);
+}
+
+function sellFish(btn, val) {
+  player.money += val;
+  player.bag.pop();
+  updateHUD();
+  save();
+  btn.closest('.modal').remove();
+}
+
+function openShop() {
+  const existing = document.querySelector('.modal');
+  if(existing) existing.remove();
+  const m = document.createElement('div');
+  m.className = 'modal';
+  let html = '<div class="modalBox"><h2>TOKO PANCING</h2>';
+
+  html += '<h3 style="color:#4fc3f7;margin:12px 0 6px">Umpan</h3>';
+  BAITS.forEach(b => {
+    const sel = player.baitId===b.id;
+    html += `<div class="shopItem">
+      <div class="info"><b>${b.name}</b> (Rp ${b.price})<br><small>${b.desc}${sel?' [Dipilih]':''}</small></div>
+      <button class="btn buy" onclick="buyBait('${b.id}',${b.price})">Beli 5</button>
+    </div>`;
+  });
+
+  html += '<h3 style="color:#4fc3f7;margin:12px 0 6px">Joran</h3>';
+  RODS.forEach(r => {
+    const owned = player.ownedRods.includes(r.id);
+    const current = player.rodId===r.id;
+    if(owned) {
+      html += `<div class="shopItem">
+        <div class="info"><b>${r.name}</b> (Lv.${r.id})<br><small>${r.desc}</small></div>
+        <button class="btn buy" style="${current?'background:#4fc3f7;color:#000':'background:#333'}" onclick="selectRod(${r.id})">${current?'Dipakai':'Pilih'}</button>
+      </div>`;
+    } else {
+      html += `<div class="shopItem">
+        <div class="info"><b>${r.name}</b> (Lv.${r.id})${r.price?' - Rp '+r.price.toLocaleString('id'):''}<br><small>${r.desc}</small></div>
+        <button class="btn buy" onclick="buyRod(${r.id},${r.price})">Beli</button>
+      </div>`;
+    }
+  });
+
+  html += '<h3 style="color:#4fc3f7;margin:12px 0 6px">Gulungan</h3>';
+  REELS.forEach(r => {
+    const owned = player.ownedReels.includes(r.id);
+    const current = player.reelId===r.id;
+    if(owned) {
+      html += `<div class="shopItem">
+        <div class="info"><b>${r.name}</b> (Lv.${r.id})<br><small>Kecepatan: ${r.retrieve}x | Max Tegangan: ${r.maxTension}</small></div>
+        <button class="btn buy" style="${current?'background:#4fc3f7;color:#000':'background:#333'}" onclick="selectReel(${r.id})">${current?'Dipakai':'Pilih'}</button>
+      </div>`;
+    } else {
+      html += `<div class="shopItem">
+        <div class="info"><b>${r.name}</b> (Lv.${r.id})${r.price?' - Rp '+r.price.toLocaleString('id'):''}<br><small>Kecepatan: ${r.retrieve}x | Max Tegangan: ${r.maxTension}</small></div>
+        <button class="btn buy" onclick="buyReel(${r.id},${r.price})">Beli</button>
+      </div>`;
+    }
+  });
+
+  html += '<h3 style="color:#4fc3f7;margin:12px 0 6px">Pilih Umpan Aktif</h3>';
+  html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+  BAITS.forEach(b => {
+    html += `<div class="baitChip ${player.baitId===b.id?'active':''}" onclick="selectBait('${b.id}')">${b.name}</div>`;
+  });
+  html += '</div>';
+  html += '<button class="btn closeModal" style="margin-top:16px" onclick="this.closest(\'.modal\').remove()">Tutup</button>';
+  html += '</div>';
+  m.innerHTML = html;
+  document.body.appendChild(m);
+}
+
+function buyBait(id, price) {
+  if(player.money < price*5) { showMsg('Uang tidak cukup!'); return; }
+  player.money -= price*5;
+  player.baitCount += 5;
+  if(player.baitId!==id) player.baitId = id;
+  updateHUD();
+  save();
+  openShop();
+}
+
+function buyRod(id, price) {
+  if(player.ownedRods.includes(id)) { showMsg('Sudah dimiliki!'); return; }
+  if(id > 1 && !player.ownedRods.includes(id-1)) { showMsg('Beli joran sebelumnya dulu!'); return; }
+  if(player.money < price) { showMsg('Uang tidak cukup!'); return; }
+  player.money -= price;
+  if(!player.ownedRods.includes(id)) player.ownedRods.push(id);
+  player.rodId = id;
+  updateHUD();
+  save();
+  openShop();
+}
+
+function buyReel(id, price) {
+  if(player.ownedReels.includes(id)) { showMsg('Sudah dimiliki!'); return; }
+  if(id > 1 && !player.ownedReels.includes(id-1)) { showMsg('Beli gulungan sebelumnya dulu!'); return; }
+  if(player.money < price) { showMsg('Uang tidak cukup!'); return; }
+  player.money -= price;
+  if(!player.ownedReels.includes(id)) player.ownedReels.push(id);
+  player.reelId = id;
+  updateHUD();
+  save();
+  openShop();
+}
+
+function selectRod(id) {
+  if(!player.ownedRods.includes(id)) return;
+  player.rodId = id;
+  updateHUD();
+  save();
+  openShop();
+}
+
+function selectReel(id) {
+  if(!player.ownedReels.includes(id)) return;
+  player.reelId = id;
+  updateHUD();
+  save();
+  openShop();
+}
+
+function selectBait(id) {
+  player.baitId = id;
+  save();
+  openShop();
+}
+
+function openBag() {
+  const existing = document.querySelector('.modal');
+  if(existing) existing.remove();
+  const m = document.createElement('div');
+  m.className = 'modal';
+  let html = '<div class="modalBox"><h2>KARAVAN IKAN</h2>';
+  if(!player.bag.length) {
+    html += '<p style="text-align:center;color:#888">Belum ada ikan.</p>';
+  } else {
+    html += `<table><tr><th>Ikan</th><th>Bobot</th><th>Nilai</th></tr>`;
+    let total = 0;
+    player.bag.forEach(f => {
+      html += `<tr style="color:${RARITY_CLR[f.rarity]}"><td>${f.name}</td><td>${f.weight.toFixed(2)}kg</td><td>Rp ${f.value.toLocaleString('id')}</td></tr>`;
+      total += f.value;
+    });
+    html += `</table>`;
+    html += `<button class="btn closeModal" onclick="sellAll()">Jual Semua (+Rp ${total.toLocaleString('id')})</button>`;
+  }
+  html += '<button class="btn closeModal" style="margin-top:8px" onclick="this.closest(\'.modal\').remove()">Tutup</button>';
+  html += '</div>';
+  m.innerHTML = html;
+  document.body.appendChild(m);
+}
+
+function sellAll() {
+  let total = 0;
+  player.bag.forEach(f => total += f.value);
+  player.money += total;
+  player.bag = [];
+  updateHUD();
+  save();
+  openBag();
+}
+
+function openAlbum() {
+  const existing = document.querySelector('.modal');
+  if(existing) existing.remove();
+  const m = document.createElement('div');
+  m.className = 'modal';
+  let html = '<div class="modalBox"><h2>ALBUM IKAN</h2>';
+  LOCATIONS.forEach(loc => {
+    const fish = FISH.filter(f => f.loc === loc.id);
+    html += `<h3 style="color:#4fc3f7;margin:10px 0 4px">${loc.name}</h3>`;
+    fish.forEach(f => {
+      const a = player.album[f.id];
+      const caught = !!a;
+      html += `<div class="fishRow ${caught?'caught':'notcaught'}">
+        <span>${caught?f.name:'???'}</span>
+        <span style="color:${RARITY_CLR[f.rarity]}">${f.rarity}</span>
+        ${caught?`<span>${a.best.toFixed(2)}kg (x${a.total})</span>`:'<span>-</span>'}
+      </div>`;
+    });
+  });
+  html += '<button class="btn closeModal" style="margin-top:16px" onclick="this.closest(\'.modal\').remove()">Tutup</button>';
+  html += '</div>';
+  m.innerHTML = html;
+  document.body.appendChild(m);
+}
+
+function openHowTo() {
+  const existing = document.querySelector('.modal');
+  if(existing) existing.remove();
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.innerHTML = `<div class="modalBox">
+    <h2>CARA BERMAIN</h2>
+    <div style="font-size:.85em;line-height:1.7;color:#ccc">
+      <p><b style="color:#4fc3f7">1. Memancing</b><br>
+      Klik canvas untuk mulai. Power bar muncul, lepaskan mouse di power yang tepat untuk melempar umpan.</p>
+      <p><b style="color:#4fc3f7">2. Batalkan Lemparan</b><br>
+      Klik kanan mouse saat power bar muncul untuk membatalkan.</p>
+      <p><b style="color:#4fc3f7">3. Mengail</b><br>
+      Saat tulisan "IKAN MENGGIGIT! KLIK CANVAS!" muncul, segera klik canvas untuk mengail.</p>
+      <p><b style="color:#4fc3f7">4. Bertarung (Fight)</b><br>
+      <b>Tahan layar</b> = menggulung senar, tarik ikan mendekat.<br>
+      <b>Lepas layar</b> = mengendurkan senar, tegangan turun.<br>
+      Jangan tegangan terus menerus, nanti senar putus!</p>
+      <p><b style="color:#ff8844">Bar Indikator:</b><br>
+      <b>TEGANGAN</b> (kanan) = Jangan sampai penuh!<br>
+      <b>PROGRES</b> (kanan) = Harus mencapai 100% untuk menang.<br>
+      <b>JARAK</b> (kiri) = Jarak ikan, harus mendekati 0%.</p>
+      <p><b style="color:#4fc3f7">5. Menjual Ikan</b><br>
+      Setiap ikan tertangkap bisa langsung dijual atau disimpan di karavan. Jual semua di karavan kapan saja.</p>
+      <p><b style="color:#4fc3f7">6. Toko</b><br>
+      Beli umpan, upgrade joran dan gulungan untuk menangkap ikan yang lebih besar.</p>
+      <p><b style="color:#4fc3f7">7. Kesulitan</b><br>
+      Mudah = ikan lemah, harga rendah.<br>
+      Extreme = ikan kuat, harga 2.5x lipat!</p>
+    </div>
+    <button class="btn closeModal" style="margin-top:14px" onclick="this.closest('.modal').remove()">Mengerti!</button>
+  </div>`;
+  document.body.appendChild(m);
+}
+
+function openCheat() {
+  const existing = document.querySelector('.modal');
+  if(existing) existing.remove();
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.innerHTML = `<div class="modalBox">
+    <h2>CHEAT CODE</h2>
+    <p style="text-align:center;color:#aaa">Masukkan kode cheat:</p>
+    <div style="display:flex;gap:8px;margin:12px 0">
+      <input id="cheatInput" type="text" placeholder="Kode cheat..." style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid #555;background:#1a1a2e;color:#fff;font-size:1em;outline:none">
+      <button class="btn" onclick="applyCheat()">OK</button>
+    </div>
+    <p id="cheatMsg" style="text-align:center;color:#ff4444;min-height:20px"></p>
+    <button class="btn closeModal" onclick="this.closest('.modal').remove()">Tutup</button>
+  </div>`;
+  document.body.appendChild(m);
+  const inp = document.getElementById('cheatInput');
+  inp.focus();
+  inp.addEventListener('keydown', e => { if(e.key==='Enter') applyCheat(); });
+}
+
+function applyCheat() {
+  const code = document.getElementById('cheatInput').value.trim().toLowerCase();
+  const msg = document.getElementById('cheatMsg');
+  if(code === 'ochim ganteng') {
+    player.money += 999999;
+    updateHUD();
+    save();
+    msg.style.color = '#44ff44';
+    msg.textContent = 'Rp 999.999 ditambahkan!';
+  } else if(code === 'umpan') {
+    player.baitCount += 100;
+    updateHUD();
+    save();
+    msg.style.color = '#44ff44';
+    msg.textContent = 'Umpan +100!';
+  } else {
+    msg.style.color = '#ff4444';
+    msg.textContent = 'Kode tidak valid!';
+  }
+  document.getElementById('cheatInput').value = '';
+}
+
+function openReset() {
+  const existing = document.querySelector('.modal');
+  if(existing) existing.remove();
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.innerHTML = `<div class="modalBox">
+    <h2>RESET PROGRESS</h2>
+    <p style="text-align:center;color:#ff8888">Yakin ingin reset?</p>
+    <p style="text-align:center;color:#aaa;font-size:.85em">Semua uang, umpan, joran, dan gulungan akan dihapus.</p>
+    <p style="text-align:center;color:#44ff44;font-size:.85em">Ikan di karavan dan album TIDAK akan hilang.</p>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn" style="flex:1;background:#ff3333" onclick="doReset()">Ya, Reset!</button>
+      <button class="btn" style="flex:1;background:#555" onclick="this.closest('.modal').remove()">Batal</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+}
+
+function doReset() {
+  player.money = 1000;
+  player.baitCount = 10;
+  player.baitId = 'cacing';
+  player.rodId = 1;
+  player.reelId = 1;
+  player.ownedRods = [1];
+  player.ownedReels = [1];
+  updateHUD();
+  save();
+  document.querySelector('.modal').remove();
+  showMsg('Progress direset! Uang: Rp 1.000', 2000);
+}
+
+function doExit() {
+  const existing = document.querySelector('.modal');
+  if(existing) existing.remove();
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.innerHTML = `<div class="modalBox">
+    <h2>KELUAR</h2>
+    <p style="text-align:center;color:#aaa">Yakin ingin keluar dari game?</p>
+    <p style="text-align:center;color:#888;font-size:.8em">Progress sudah tersimpan otomatis.</p>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn" style="flex:1;background:#ff3333" onclick="window.close();document.body.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100vh;background:#1a1a2e;color:#fff;font-family:sans-serif\\' onclick=\\'location.reload()\\'><div style=\\'text-align:center\\'><h1 style=\\'color:#e94560\\'>Ochim Pro</h1><p>Game ditutup.</p><p style=\\'color:#888;font-size:.8em;margin-top:20px\\'>Klik untuk bermain lagi</p></div></div>'">Ya, Keluar</button>
+      <button class="btn" style="flex:1;background:#555" onclick="this.closest('.modal').remove()">Batal</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+}
+
+// Input (mouse only)
+function handleActionDown() {
+  if(state==='idle') startCast();
+  else if(state==='bite') doHook();
+  else if(state==='fighting') reeling = true;
+}
+function handleActionUp() {
+  if(state==='casting') doCast();
+  else if(state==='fighting') reeling = false;
+}
+
+canvas.addEventListener('pointerdown', e => { e.preventDefault(); handleActionDown(); });
+canvas.addEventListener('pointerup', e => { e.preventDefault(); handleActionUp(); });
+canvas.addEventListener('pointerleave', e => { if(state==='fighting') reeling = false; });
+
+// Klik kanan = batalkan lemparan / tarik pancing
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  cancelCast();
+});
+
+function cancelCast() {
+  if(state==='casting') {
+    state = 'idle';
+    document.getElementById('powerWrap').style.display = 'none';
+    document.getElementById('cancelBtn').style.display = 'none';
+    showMsg('Lemparan dibatalkan', 1000);
+  } else if(state==='waiting' || state==='bite') {
+    state = 'idle';
+    ripples = [];
+    document.getElementById('cancelBtn').style.display = 'none';
+    showMsg('Pancing ditarik', 1000);
+  }
+}
+
+// Update
+let lastT = 0;
+function update(dt) {
+  time += dt;
+  waterOffset += dt * 30;
+
+  if(msgTimer > 0) {
+    msgTimer -= dt*1000;
+    if(msgTimer <= 0) document.getElementById('msg').style.opacity = '0';
+  }
+
+  if(castAnim > 0) castAnim -= dt;
+
+  // Ripples
+  for(let i=ripples.length-1; i>=0; i--) {
+    ripples[i].r += dt*60;
+    ripples[i].a -= dt*2;
+    if(ripples[i].a<=0) ripples.splice(i,1);
+  }
+
+  if(state==='casting') {
+    castPower += castDir * dt * 120;
+    if(castPower>=100){castPower=100;castDir=-1;}
+    if(castPower<=0){castPower=0;castDir=1;}
+    document.getElementById('powerBar').style.width = castPower+'%';
+  }
+
+  if(state==='waiting') {
+    bobberY += Math.sin(time*3)*dt*8;
+    biteTimer -= dt*1000;
+    if(biteTimer <= 0 && pendingFish) {
+      state = 'bite';
+      const baseWindow = pendingFish.rarity==='legendary'?800:pendingFish.rarity==='epic'?1000:1500;
+      biteWindow = baseWindow * diff().biteMult;
+      showMsg('IKAN MENGGIGIT! KLIK CANVAS!', biteWindow);
+      ripples.push({x:bobberX,y:bobberY,r:0,a:1});
+      ripples.push({x:bobberX,y:bobberY,r:5,a:0.8});
+    }
+  }
+
+  if(state==='bite') {
+    biteWindow -= dt*1000;
+    bobberY += Math.sin(time*15)*dt*20;
+    if(biteWindow <= 0) {
+      state = 'idle';
+      document.getElementById('cancelBtn').style.display = 'none';
+      showMsg('Terlambat! Ikan pergi...', 1500);
+    }
+  }
+
+  if(state==='fighting') {
+    const fp = fightParams();
+
+    // Fish AI
+    if(fishPulling) {
+      fishPullTimer -= dt*1000;
+      if(fishPullTimer <= 0) {
+        fishPulling = false;
+        fishRestTimer = 600 + Math.random()*1800 / fp.effort;
+      }
+    } else {
+      fishRestTimer -= dt*1000;
+      if(fishRestTimer <= 0) {
+        fishPulling = true;
+        fishPullTimer = 400 + Math.random()*1000;
+      }
+    }
+
+    const effort = Math.min(fp.effort, 1.0);
+    const pullEffort = effort * diff().pullMult;
+
+    // Tension
+    if(fishPulling && reeling) {
+      tension += pullEffort * dt * 0.18;
+    }
+    tension -= dt * 0.12;
+    if(fishPulling && !reeling) tension -= dt * 0.08;
+    tension = Math.max(0, Math.min(tension, fp.cap * 1.2));
+
+    // Distance
+    if(fishPulling) {
+      fishDist += pullEffort * dt * 0.05;
+    }
+    if(reeling && !fishPulling) {
+      fishDist -= fp.speed * dt * 0.18;
+    }
+    if(reeling && fishPulling) {
+      fishDist -= fp.speed * dt * 0.06;
+    }
+    if(!reeling && !fishPulling) {
+      fishDist += dt * 0.005;
+    }
+    fishDist = Math.max(0, Math.min(1, fishDist));
+
+    progress = 1 - fishDist;
+
+    // Update bars
+    const tPct = Math.min(100, Math.round(tension/fp.cap*100));
+    const pPct = Math.round(progress*100);
+    const jPct = Math.round(fishDist*100);
+    document.getElementById('tensionFill').style.height = tPct+'%';
+    document.getElementById('tensionVal').textContent = tPct+'%';
+    document.getElementById('progressFill').style.height = pPct+'%';
+    document.getElementById('progressVal').textContent = pPct+'%';
+    document.getElementById('distFill').style.height = jPct+'%';
+    document.getElementById('distVal').textContent = jPct+'%';
+
+    // Color tension
+    const tf = document.getElementById('tensionFill');
+    if(tension/fp.cap > 0.8) tf.style.background = '#ff0000';
+    else if(tension/fp.cap > 0.5) tf.style.background = '#ff8800';
+    else tf.style.background = '#44ff44';
+
+    // Check win/lose
+    if(tension >= fp.cap) { lineBreak(); save(); return; }
+    if(fishDist >= 1) { fishEscape(); return; }
+    if(fishDist <= 0) { catchFish(); return; }
+  }
+}
+
+// Render
+function render() {
+  const w = cW(), h = cH();
+  ctx.clearRect(0,0,w,h);
+  const L = loc();
+
+  // Sky
+  const skyGrad = ctx.createLinearGradient(0,0,0,h*0.55);
+  skyGrad.addColorStop(0, L.skyTop);
+  skyGrad.addColorStop(1, L.skyBot);
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0,0,w,h*0.55);
+
+  // Sun/moon
+  ctx.fillStyle = 'rgba(255,255,200,0.3)';
+  ctx.beginPath();
+  ctx.arc(w*0.8, h*0.12, 30, 0, Math.PI*2);
+  ctx.fill();
+
+  // Hills
+  ctx.fillStyle = L.hill;
+  ctx.beginPath();
+  ctx.moveTo(0, h*0.45);
+  for(let x=0; x<=w; x+=50) {
+    ctx.lineTo(x, h*0.42 + Math.sin(x*0.008+1)*15 + Math.sin(x*0.02)*8);
+  }
+  ctx.lineTo(w, h*0.55);
+  ctx.lineTo(0, h*0.55);
+  ctx.fill();
+
+  // Trees on hill
+  for(let i=0; i<8; i++) {
+    const tx = w*0.1 + i*w*0.11;
+    const ty = h*0.4 + Math.sin(tx*0.008+1)*15 + Math.sin(tx*0.02)*8;
+    ctx.fillStyle = '#1a3a0a';
+    ctx.beginPath();
+    ctx.moveTo(tx-10, ty);
+    ctx.lineTo(tx, ty-25-Math.random()*5);
+    ctx.lineTo(tx+10, ty);
+    ctx.fill();
+    ctx.fillStyle = '#2d1a00';
+    ctx.fillRect(tx-2, ty, 4, 8);
+  }
+
+  // Plang pemancingan di gunung
+  const plangX = w*0.82;
+  const plangY = h*0.28;
+  // Tiang plang
+  ctx.fillStyle = '#3e2723';
+  ctx.fillRect(plangX-4, plangY+10, 8, 50);
+  // Papan plang
+  ctx.fillStyle = '#5d4037';
+  ctx.strokeStyle = '#3e2723';
+  ctx.lineWidth = 3;
+  const plangW = 160, plangH = 32;
+  const plangRX = plangX-plangW/2, plangRY = plangY-plangH/2+8;
+  ctx.beginPath();
+  ctx.moveTo(plangRX+7, plangRY);
+  ctx.lineTo(plangRX+plangW-7, plangRY);
+  ctx.arcTo(plangRX+plangW, plangRY, plangRX+plangW, plangRY+7, 7);
+  ctx.lineTo(plangRX+plangW, plangRY+plangH-7);
+  ctx.arcTo(plangRX+plangW, plangRY+plangH, plangRX+plangW-7, plangRY+plangH, 7);
+  ctx.lineTo(plangRX+7, plangRY+plangH);
+  ctx.arcTo(plangRX, plangRY+plangH, plangRX, plangRY+plangH-7, 7);
+  ctx.lineTo(plangRX, plangRY+7);
+  ctx.arcTo(plangRX, plangRY, plangRX+7, plangRY, 7);
+  ctx.fill();
+  ctx.stroke();
+  // Bracket tiang
+  ctx.fillStyle = '#4E342E';
+  ctx.beginPath();
+  ctx.moveTo(plangX-16, plangY+10);
+  ctx.lineTo(plangX+16, plangY+10);
+  ctx.lineTo(plangX+8, plangY+25);
+  ctx.lineTo(plangX-8, plangY+25);
+  ctx.fill();
+  // Teks plang
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold 10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('OCHIM FISHING PRO', plangX, plangY+3);
+  // Garis dekoratif plang
+  ctx.strokeStyle = '#FFD700';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(plangX-plangW/2+8, plangY+10);
+  ctx.lineTo(plangX+plangW/2-8, plangY+10);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(plangX-plangW/2+8, plangY-6);
+  ctx.lineTo(plangX+plangW/2-8, plangY-6);
+  ctx.stroke();
+
+  // Water
+  const waterGrad = ctx.createLinearGradient(0,h*0.55,0,h);
+  waterGrad.addColorStop(0, L.waterTop);
+  waterGrad.addColorStop(1, L.waterBot);
+  ctx.fillStyle = waterGrad;
+  ctx.fillRect(0,h*0.55,w,h*0.45);
+
+  // Water waves
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  for(let y=h*0.57; y<h; y+=18) {
+    ctx.beginPath();
+    for(let x=0; x<=w; x+=4) {
+      const yy = y + Math.sin(x*0.02 + waterOffset*0.03 + y*0.1)*4;
+      x===0 ? ctx.moveTo(x,yy) : ctx.lineTo(x,yy);
+    }
+    ctx.stroke();
+  }
+
+  // Dock
+  ctx.fillStyle = '#5c3a1e';
+  ctx.fillRect(0, h*0.48, 180, 12);
+  ctx.fillStyle = '#4a2e16';
+  for(let i=0; i<3; i++) {
+    ctx.fillRect(30+i*55, h*0.48, 10, 40);
+  }
+  ctx.fillRect(0, h*0.5, 180, 8);
+
+  // Character on dock
+  ctx.fillStyle = '#2c1810';
+  ctx.fillRect(130, h*0.44, 8, 14);
+  ctx.beginPath();
+  ctx.arc(134, h*0.42, 8, 0, Math.PI*2);
+  ctx.fillStyle = '#deb887';
+  ctx.fill();
+  ctx.fillStyle = '#e94560';
+  ctx.beginPath();
+  ctx.arc(134, h*0.405, 9, Math.PI, 0);
+  ctx.fill();
+
+  // Rod
+  const rodTipX = 165;
+  const rodTipY = h*0.38;
+  ctx.strokeStyle = '#8B4513';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(138, h*0.44);
+  ctx.quadraticCurveTo(155, h*0.36, rodTipX, rodTipY);
+  ctx.stroke();
+
+  // Rod tip (flexible during fight)
+  let tipX = rodTipX, tipY = rodTipY;
+  if(state==='fighting') {
+    const bend = tension / fightParams().cap;
+    tipX = rodTipX - bend*20;
+    tipY = rodTipY + bend*25;
+    ctx.strokeStyle = '#8B4513';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(155, h*0.36);
+    ctx.quadraticCurveTo(160-bend*10, h*0.37, tipX, tipY);
+    ctx.stroke();
+  }
+
+  // Line + Bobber
+  if(state==='waiting' || state==='bite' || state==='fighting') {
+    // Line
+    ctx.strokeStyle = state==='fighting' && tension/fightParams().cap > 0.7 ? 'rgba(255,100,100,0.7)' : 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(bobberX, bobberY);
+    ctx.stroke();
+
+    // Bobber
+    const by = bobberY + (state==='bite' ? Math.sin(time*15)*6 : Math.sin(time*3)*3);
+    ctx.fillStyle = '#ff3333';
+    ctx.beginPath();
+    ctx.arc(bobberX, by - 4, 5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(bobberX, by + 3, 3, 0, Math.PI*2);
+    ctx.fill();
+
+    // Fish shadow during fight
+    if(state==='fighting') {
+      const fishSize = 10 + fishWeight*3;
+      const fx = bobberX + Math.sin(time*2)*fishDist*30;
+      const fy = bobberY + 20 + Math.sin(time*1.5)*8 + fishDist*15;
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(fx, fy, fishSize, fishSize*0.4, 0, 0, Math.PI*2);
+      ctx.fill();
+      // tail
+      ctx.beginPath();
+      ctx.moveTo(fx-fishSize, fy);
+      ctx.lineTo(fx-fishSize-8, fy-6);
+      ctx.lineTo(fx-fishSize-8, fy+6);
+      ctx.fill();
+    }
+
+    // Ripples
+    ripples.forEach(r => {
+      ctx.strokeStyle = `rgba(255,255,255,${r.a*0.5})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, r.r, 0, Math.PI*2);
+      ctx.stroke();
+    });
+  }
+
+  // Cast arc preview
+  if(state==='idle') {
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Klik canvas untuk memancing', w/2, h-20);
+  }
+
+  // Casting power bar on canvas
+  if(state==='casting') {
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(w/2-100, h*0.6, 200, 14);
+    const pw = castPower/100;
+    const clr = pw < 0.5 ? '#00ff88' : pw < 0.8 ? '#ffcc00' : '#ff3333';
+    ctx.fillStyle = clr;
+    ctx.fillRect(w/2-99, h*0.6+1, 198*pw, 12);
+    ctx.fillStyle = '#fff';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('LEPASKAN!', w/2, h*0.6-5);
+  }
+
+  // Bite splash
+  if(state==='bite') {
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    for(let i=0; i<3; i++) {
+      const sx = bobberX + Math.sin(time*20+i*2)*15;
+      const sy = bobberY + Math.cos(time*25+i*3)*5 - 5;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 3, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  // Fight tension warning + fish status
+  if(state==='fighting') {
+    const fp = fightParams();
+    if(tension/fp.cap > 0.75) {
+      ctx.fillStyle = `rgba(255,0,0,${0.3+Math.sin(time*10)*0.2})`;
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('TEGANGAN TINGGI!', w/2, h*0.15);
+    }
+    // Fish pull status
+    const statusText = fishPulling ? 'IKAN MENARIK!' : 'Ikan istirahat - GULUNG bro!';
+    const statusColor = fishPulling ? '#ff4444' : '#000000';
+    ctx.fillStyle = statusColor;
+    ctx.font = 'bold 15px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(statusText, w/2, h*0.22);
+    // Fish name
+    if(pendingFish) {
+      ctx.fillStyle = RARITY_CLR[pendingFish.rarity];
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText(pendingFish.name + ' (' + fishWeight.toFixed(1) + ' kg)', w/2, h*0.28);
+    }
+  }
+}
+
+function gameLoop(ts) {
+  const dt = Math.min((ts - lastT)/1000, 0.05);
+  lastT = ts;
+  update(dt);
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+load();
+updateHUD();
+buildLocBar();
+requestAnimationFrame(ts => { lastT = ts; gameLoop(ts); });
+
+// Coba kunci layar ke landscape di HP
+if(screen.orientation && screen.orientation.lock) {
+  screen.orientation.lock('landscape').catch(()=>{});
+}
+</script>
+</body>
+</html>
