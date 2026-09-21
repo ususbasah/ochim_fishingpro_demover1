@@ -54,7 +54,7 @@ canvas{width:100%;height:100%;display:block;touch-action:none;user-select:none;-
 .baitChip:hover{border-color:#4fc3f7}
 .baitChip.active{background:#4fc3f7;border-color:#4fc3f7;color:#000}
 .fightHint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:min(.8em,3vw);color:#ddd;text-align:center;z-index:5;display:none;background:rgba(0,0,0,.7);padding:8px 14px;border-radius:10px;line-height:1.4;border:1px solid rgba(255,255,255,.1);max-width:90%}
-#cancelBtn{position:absolute;bottom:40%;left:22%;z-index:6;display:none;background:#e94560;font-size:.75em;padding:6px 12px;touch-action:manipulation}
+
 #rotateOverlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#1a1a2e;z-index:999;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 #rotateOverlay .icon{font-size:4em;margin-bottom:16px;animation:rotatePhone 2s ease-in-out infinite}
 #rotateOverlay p{color:#ccc;font-size:1.1em;margin:4px 0}
@@ -117,7 +117,6 @@ canvas{width:100%;height:100%;display:block;touch-action:none;user-select:none;-
     </div>
   </div>
   <div class="fightHint" id="fightHint"></div>
-  <button id="cancelBtn" class="btn" onclick="cancelCast()">Tarik Pancing</button>
 </main>
 
 <script>
@@ -258,7 +257,6 @@ function buildLocBar() {
         if(state==='waiting' || state==='bite') {
           state = 'idle';
           ripples = [];
-          document.getElementById('cancelBtn').style.display = 'none';
         }
         player.currentLoc=i;
         buildLocBar();
@@ -327,7 +325,7 @@ function startCast() {
   castPower = 0;
   castDir = 1;
   document.getElementById('powerWrap').style.display = 'block';
-  document.getElementById('cancelBtn').style.display = 'block';
+
 }
 
 function doCast() {
@@ -342,7 +340,7 @@ function doCast() {
   castTargetX = bobberX;
   castAnim = 0.5;
   state = 'waiting';
-  document.getElementById('cancelBtn').style.display = 'block';
+
   pendingFish = pickFish();
   fishWeight = pendingFish ? randWeight(pendingFish) : 0;
   const d = diff();
@@ -372,7 +370,7 @@ function doHook() {
     showMsg(pendingFish.name + ' tersangkut!', 1500);
   } else {
     state = 'idle';
-    document.getElementById('cancelBtn').style.display = 'none';
+
     showMsg('Ikan lepas!', 1500);
   }
   document.getElementById('msg').style.opacity = '1';
@@ -383,7 +381,6 @@ function catchFish() {
   document.getElementById('bars').style.display = 'none';
   document.getElementById('distWrap').style.display = 'none';
   document.getElementById('fightHint').style.display = 'none';
-  document.getElementById('cancelBtn').style.display = 'none';
   const f = pendingFish;
   const w = fishWeight.toFixed(2);
   const baseVal = Math.round(fishWeight * f.priceKg);
@@ -405,7 +402,6 @@ function lineBreak() {
   document.getElementById('bars').style.display = 'none';
   document.getElementById('distWrap').style.display = 'none';
   document.getElementById('fightHint').style.display = 'none';
-  document.getElementById('cancelBtn').style.display = 'none';
   showMsg('Senar putus!', 2000);
 }
 
@@ -414,7 +410,6 @@ function fishEscape() {
   document.getElementById('bars').style.display = 'none';
   document.getElementById('distWrap').style.display = 'none';
   document.getElementById('fightHint').style.display = 'none';
-  document.getElementById('cancelBtn').style.display = 'none';
   showMsg('Ikan melarikan diri!', 2000);
 }
 
@@ -772,12 +767,12 @@ function cancelCast() {
   if(state==='casting') {
     state = 'idle';
     document.getElementById('powerWrap').style.display = 'none';
-    document.getElementById('cancelBtn').style.display = 'none';
+
     showMsg('Lemparan dibatalkan', 1000);
   } else if(state==='waiting' || state==='bite') {
     state = 'idle';
     ripples = [];
-    document.getElementById('cancelBtn').style.display = 'none';
+
     showMsg('Pancing ditarik', 1000);
   }
 }
@@ -827,7 +822,7 @@ function update(dt) {
     bobberY += Math.sin(time*15)*dt*20;
     if(biteWindow <= 0) {
       state = 'idle';
-      document.getElementById('cancelBtn').style.display = 'none';
+  
       showMsg('Terlambat! Ikan pergi...', 1500);
     }
   }
