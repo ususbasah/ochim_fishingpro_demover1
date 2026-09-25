@@ -55,10 +55,11 @@ canvas{width:100%;height:100%;display:block;touch-action:none;user-select:none;-
 .baitChip.active{background:#4fc3f7;border-color:#4fc3f7;color:#000}
 .fightHint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:min(.8em,3vw);color:#ddd;text-align:center;z-index:5;display:none;background:rgba(0,0,0,.7);padding:8px 14px;border-radius:10px;line-height:1.4;border:1px solid rgba(255,255,255,.1);max-width:90%}
 
-#rotateOverlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#1a1a2e;z-index:999;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+#rotateOverlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#1a1a2e;z-index:999;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer}
 #rotateOverlay .icon{font-size:4em;margin-bottom:16px;animation:rotatePhone 2s ease-in-out infinite}
 #rotateOverlay p{color:#ccc;font-size:1.1em;margin:4px 0}
 #rotateOverlay small{color:#888;font-size:.8em}
+#rotateOverlay .startBtn{background:#e94560;border:none;color:#fff;padding:12px 30px;border-radius:12px;font-size:1.1em;margin-top:16px;font-weight:bold}
 @keyframes rotatePhone{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
 @media (orientation:portrait) and (max-width:900px){
   #rotateOverlay{display:flex}
@@ -70,11 +71,12 @@ canvas{width:100%;height:100%;display:block;touch-action:none;user-select:none;-
 </style>
 </head>
 <body>
-<div id="rotateOverlay">
+<div id="rotateOverlay" onclick="startGame()">
   <div class="icon">📱</div>
-  <p><b>Mohon Putar Handphone!</b></p>
-  <p>Game ini dimainkan secara horizontal</p>
-  <small>Putar HP ke samping untuk bermain</small>
+  <p><b>OCHIM PRO</b></p>
+  <p>Game dimainkan secara horizontal</p>
+  <button class="startBtn" type="button">KLIK UNTUK MULAI</button>
+  <small>Layar otomatis menjadi horizontal</small>
 </div>
 <header>
   <h1>Ochim Pro</h1>
@@ -88,7 +90,7 @@ canvas{width:100%;height:100%;display:block;touch-action:none;user-select:none;-
   </div>
   <button class="btn" onclick="cycleDifficulty()">Ganti Kesulitan</button>
   <button class="btn" onclick="openShop()">Toko</button>
-  <button class="btn" onclick="openBag()">Karavan</button>
+  <button class="btn" onclick="openBag()">Keranjang</button>
   <button class="btn" onclick="openAlbum()">Album Ikan</button>
   <button class="btn" onclick="openHowTo()">Cara Bermain</button>
   <button class="btn" onclick="openReset()" style="background:#333;font-size:.7em">Reset</button>
@@ -102,17 +104,17 @@ canvas{width:100%;height:100%;display:block;touch-action:none;user-select:none;-
   <div id="msg"></div>
   <div id="bars">
     <div class="barContainer">
-      <div class="barTitle" style="color:#ff6644">TEGANGAN</div>
+      <div class="barTitle" style="color:#000">TEGANGAN</div>
       <div class="barWrap"><div class="barFill" id="tensionFill" style="background:#44ff44"></div><div class="barValue" id="tensionVal" style="color:#fff">0%</div></div>
     </div>
     <div class="barContainer">
-      <div class="barTitle" style="color:#00ccff">PROGRES</div>
+      <div class="barTitle" style="color:#000">PROGRES</div>
       <div class="barWrap"><div class="barFill" id="progressFill" style="background:#00ccff"></div><div class="barValue" id="progressVal" style="color:#fff">0%</div></div>
     </div>
   </div>
   <div id="distWrap">
     <div class="barContainer">
-      <div class="barTitle" style="color:#ffaa00">JARAK</div>
+      <div class="barTitle" style="color:#000">JARAK</div>
       <div class="barWrap"><div class="barFill" id="distFill" style="background:#ffaa00"></div><div class="barValue" id="distVal" style="color:#fff">60%</div></div>
     </div>
   </div>
@@ -425,7 +427,7 @@ function showCatchModal(f, w, val) {
     <p style="text-align:center;font-size:1.5em"><b>${w} kg</b></p>
     <p style="text-align:center">Nilai: <b style="color:#ffd700">Rp ${val.toLocaleString('id')}</b> <small style="color:${diff().color}">(${diff().name} x${diff().priceMult})</small></p>
     <button class="btn closeModal" onclick="sellFish(this,${val})">Jual Langsung (+Rp ${val.toLocaleString('id')})</button>
-    <button class="btn closeModal" style="background:#333;margin-top:6px" onclick="this.closest('.modal').remove()">Simpan di Karavan</button>
+    <button class="btn closeModal" style="background:#333;margin-top:6px" onclick="this.closest('.modal').remove()">Simpan di Keranjang</button>
   </div>`;
   document.body.appendChild(m);
 }
@@ -561,7 +563,7 @@ function openBag() {
   if(existing) existing.remove();
   const m = document.createElement('div');
   m.className = 'modal';
-  let html = '<div class="modalBox"><h2>KARAVAN IKAN</h2>';
+  let html = '<div class="modalBox"><h2>KERANJANG IKAN</h2>';
   if(!player.bag.length) {
     html += '<p style="text-align:center;color:#888">Belum ada ikan.</p>';
   } else {
@@ -638,7 +640,7 @@ function openHowTo() {
       <b>PROGRES</b> (kanan) = Harus mencapai 100% untuk menang.<br>
       <b>JARAK</b> (kiri) = Jarak ikan, harus mendekati 0%.</p>
       <p><b style="color:#4fc3f7">5. Menjual Ikan</b><br>
-      Setiap ikan tertangkap bisa langsung dijual atau disimpan di karavan. Jual semua di karavan kapan saja.</p>
+      Setiap ikan tertangkap bisa langsung dijual atau disimpan di keranjang. Jual semua di keranjang kapan saja.</p>
       <p><b style="color:#4fc3f7">6. Toko</b><br>
       Beli umpan, upgrade joran dan gulungan untuk menangkap ikan yang lebih besar.</p>
       <p><b style="color:#4fc3f7">7. Kesulitan</b><br>
@@ -702,7 +704,7 @@ function openReset() {
     <h2>RESET PROGRESS</h2>
     <p style="text-align:center;color:#ff8888">Yakin ingin reset?</p>
     <p style="text-align:center;color:#aaa;font-size:.85em">Semua uang, umpan, joran, dan gulungan akan dihapus.</p>
-    <p style="text-align:center;color:#44ff44;font-size:.85em">Ikan di karavan dan album TIDAK akan hilang.</p>
+    <p style="text-align:center;color:#44ff44;font-size:.85em">Ikan di keranjang dan album TIDAK akan hilang.</p>
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn" style="flex:1;background:#ff3333" onclick="doReset()">Ya, Reset!</button>
       <button class="btn" style="flex:1;background:#555" onclick="this.closest('.modal').remove()">Batal</button>
@@ -1173,6 +1175,26 @@ load();
 updateHUD();
 buildLocBar();
 requestAnimationFrame(ts => { lastT = ts; gameLoop(ts); });
+
+// Otomatis landscape di HP: perlu fullscreen dulu sebelum kunci orientasi
+function startGame() {
+  const el = document.documentElement;
+  const fs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+  if(fs) {
+    const p = fs.call(el);
+    if(p && p.catch) p.catch(()=>{});
+    setTimeout(()=>{
+      if(screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(()=>{});
+      }
+    }, 300);
+  } else {
+    if(screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(()=>{});
+    }
+  }
+  document.getElementById('rotateOverlay').style.display = 'none';
+}
 
 // Coba kunci layar ke landscape di HP
 if(screen.orientation && screen.orientation.lock) {
