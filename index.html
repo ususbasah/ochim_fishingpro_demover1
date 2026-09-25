@@ -204,6 +204,13 @@ const RODS = [
   {id:4, name:'Pro-Lite', price:40000, power:2, hookBonus:0.3, desc:'100% power'}
 ];
 
+const ROD_VIS = [
+  {c:'#e94560', w:3.5, lift:20, curve:0},   // Bambu - merah
+  {c:'#ffcc00', w:3,   lift:22, curve:6},   // Fiber - kuning
+  {c:'#00ee4c', w:2.5, lift:24, curve:12},  // Karbon - hijau
+  {c:'#ff69b4', w:2,   lift:26, curve:16}   // Pro-Lite - pink
+];
+
 const REELS = [
   {id:1, name:'Dasar', price:0, retrieve:1, maxTension:1.0},
   {id:2, name:'Perak', price:4000, retrieve:1.3, maxTension:1.4},
@@ -252,6 +259,8 @@ let player = {
 };
 
 let state = 'idle';
+let boatFrozen = false;
+let frozenBoatT = 0;
 let castPower = 0, castDir = 1;
 let bobberX = 0, bobberY = 0, bobberVY = 0;
 let biteTimer = 0, biteWindow = 0;
@@ -976,18 +985,37 @@ function render() {
   ctx.lineTo(0, h*0.55);
   ctx.fill();
 
-  // Trees on hill
-  for(let i=0; i<8; i++) {
-    const tx = w*0.1 + i*w*0.11;
-    const ty = h*0.4 + Math.sin(tx*0.008+1)*15 + Math.sin(tx*0.02)*8;
-    ctx.fillStyle = '#1a3a0a';
+  // Hutan bakau (mangrove) di tepi air
+  for(let i=0; i<10; i++) {
+    const tx = w*0.06 + i*w*0.095;
+    const ty = h*0.53 + Math.sin(i*3.7)*3;
+    // Rimbun daun
+    ctx.fillStyle = i%2 ? '#1e4d2b' : '#256b33';
     ctx.beginPath();
-    ctx.moveTo(tx-10, ty);
-    ctx.lineTo(tx, ty-25-Math.random()*5);
-    ctx.lineTo(tx+10, ty);
+    ctx.arc(tx, ty-18, 15, 0, Math.PI*2);
+    ctx.arc(tx-11, ty-26, 11, 0, Math.PI*2);
+    ctx.arc(tx+11, ty-26, 11, 0, Math.PI*2);
     ctx.fill();
-    ctx.fillStyle = '#2d1a00';
-    ctx.fillRect(tx-2, ty, 4, 8);
+    // Daun lapis atas
+    ctx.fillStyle = '#2f8f3f';
+    ctx.beginPath();
+    ctx.arc(tx, ty-24, 9, 0, Math.PI*2);
+    ctx.fill();
+    // Batang
+    ctx.fillStyle = '#4a3525';
+    ctx.fillRect(tx-3, ty-8, 6, 16);
+    // Akar penyangga (prop roots)
+    ctx.strokeStyle = '#3b2a1a';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    for(let r=0; r<3; r++) {
+      const ang = -Math.PI*0.08 + r*0.12;
+      const rx = tx + (r-1)*9;
+      ctx.beginPath();
+      ctx.moveTo(tx + (r-1)*3, ty+6);
+      ctx.lineTo(rx, ty + 18 + Math.sin(i+r)*2);
+      ctx.stroke();
+    }
   }
 
   // Plang pemancingan di gunung
@@ -1058,21 +1086,33 @@ function render() {
     ctx.stroke();
   }
 
-  // Perahu (boats) - orang memancing di atas perahu
-  const boatX = 150;
+  // Perahu (boats) - orang memancing di atas perahu yang berjalan
+  if(state==='fighting' && !boatFrozen) { boatFrozen = true; frozenBoatT = time; }
+  if(state!=='fighting') boatFrozen = false;
+  const period = 16;
+  const movT = boatFrozen ? frozenBoatT : time;
+  const boatMinX = Math.max(120, w*0.18);
+  const boatMaxX = Math.min(w-150, w*0.6);
+  const bt = (movT % (period*2)) / period;
+  const boatX = bt < 1 ? boatMinX + (boatMaxX-boatMinX)*bt : boatMaxX - (boatMaxX-boatMinX)*(bt-1);
+  const boatDir = bt < 1 ? 1 : -1;
   const boatY = h*0.55 + Math.sin(time*2)*2; // mengambang
   // Air di sekitar perahu
   ctx.fillStyle = 'rgba(255,255,255,0.1)';
   ctx.beginPath();
   ctx.ellipse(boatX, boatY+18, 62, 8, 0, 0, Math.PI*2);
   ctx.fill();
-  // Body perahu
+  // Body perahu - slalu menghadap kanan, hanyut kiri-kanan
+  const tilt = -boatDir * 2.5;
+  ctx.save();
+  ctx.translate(boatX, boatY);
+  ctx.rotate(tilt * Math.PI / 180);
   ctx.fillStyle = '#6d4c2f';
   ctx.beginPath();
-  ctx.moveTo(boatX-55, boatY);
-  ctx.lineTo(boatX+55, boatY);
-  ctx.lineTo(boatX+38, boatY+20);
-  ctx.lineTo(boatX-38, boatY+20);
+  ctx.moveTo(-55, 0);
+  ctx.lineTo(55, 0);
+  ctx.lineTo(38, 20);
+  ctx.lineTo(-38, 20);
   ctx.closePath();
   ctx.fill();
   ctx.strokeStyle = '#3e2723';
@@ -1082,19 +1122,65 @@ function render() {
   ctx.strokeStyle = '#8d6e41';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(boatX-45, boatY-2);
-  ctx.lineTo(boatX+45, boatY-2);
+  ctx.moveTo(-45, -2);
+  ctx.lineTo(45, -2);
   ctx.stroke();
-  // Haluan/linggi detail
+  // Tulisan di badan perahu
+  ctx.fillStyle = '#000';
+  ctx.font = 'bold 8px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('OCHIM GANTENG', 0, 13);
+  // Haluan/linggi detail (kanan)
   ctx.strokeStyle = '#4a2e16';
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(boatX+52, boatY-4);
-  ctx.lineTo(boatX+55, boatY);
+  ctx.moveTo(58, -4);
+  ctx.lineTo(55, 0);
+  ctx.stroke();
+  ctx.restore();
+
+  // Bendera bajak laut (skull Jolly Roger) di buritan
+  const pX = boatX - 46, pY = boatY - 2;
+  // Tiang bendera
+  ctx.strokeStyle = '#3e2723';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(pX, pY);
+  ctx.lineTo(pX, pY - 36);
+  ctx.stroke();
+  // Kain bendera hitam bergelombang (menghadap kiri)
+  ctx.fillStyle = '#111';
+  ctx.beginPath();
+  ctx.moveTo(pX, pY - 34);
+  ctx.quadraticCurveTo(pX - 10, pY - 30 + Math.sin(time*4)*1.5, pX - 24, pY - 34);
+  ctx.lineTo(pX - 24, pY - 18);
+  ctx.quadraticCurveTo(pX - 10, pY - 14 - Math.sin(time*4)*1.5, pX, pY - 18);
+  ctx.closePath();
+  ctx.fill();
+  // Tengkorak
+  const sX = pX - 12, sY = pY - 26;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(sX, sY, 4.5, 0, Math.PI*2);
+  ctx.fill();
+  // Mata tengkorak
+  ctx.fillStyle = '#111';
+  ctx.beginPath();
+  ctx.arc(sX - 1.6, sY - 0.5, 1.1, 0, Math.PI*2);
+  ctx.arc(sX + 1.6, sY - 0.5, 1.1, 0, Math.PI*2);
+  ctx.fill();
+  // Tulang bersilang
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(sX - 4.5, sY + 5);
+  ctx.lineTo(sX + 4.5, sY + 3);
+  ctx.moveTo(sX + 4.5, sY + 5);
+  ctx.lineTo(sX - 4.5, sY + 3);
   ctx.stroke();
 
-  // Karakter duduk di perahu
-  const manX = boatX + 8;
+  // Karakter duduk di perahu - slalu menghadap joran (ke kanan, arah lemparan)
+  const manX = boatX - 16;
   // Kepala
   ctx.beginPath();
   ctx.arc(manX, boatY-10, 7, 0, Math.PI*2);
@@ -1109,30 +1195,96 @@ function render() {
   ctx.fillStyle = '#2c1810';
   ctx.fillRect(manX-4, boatY-5, 8, 10);
 
-  // Rod (ujung tip dinamis)
-  const rodBaseX = manX + 3;
-  const rodBaseY = boatY - 3;
-  const rodTipX = boatX + 60;
-  const rodTipY = boatY - 24;
-  ctx.strokeStyle = '#8B4513';
+  // Lengan dan joran mulai dari tangan orang (ke kanan)
+  const rodBaseX = manX + 6;
+  const rodBaseY = boatY - 4;
+  // Lengan
+  ctx.strokeStyle = '#2c1810';
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(rodBaseX, rodBaseY);
-  ctx.quadraticCurveTo(boatX+40, boatY-26, rodTipX, rodTipY);
+  ctx.moveTo(manX + 3, boatY - 2);
+  ctx.lineTo(rodBaseX, rodBaseY);
   ctx.stroke();
+
+  // Rod - bentuk & warna sesuai level joran
+  const rv = ROD_VIS[Math.min(player.rodId-1, ROD_VIS.length-1)];
+  const rodTipX = boatX + 52;
+  const rodTipY = boatY - rv.lift;
+  const rodCtl = () => ({x: boatX + 28, y: boatY - rv.curve - 8});
+
+  // Gambar joran asli: mengecil ke ujung + ring pemandu
+  function drawRod(cx, cy, cpx, cpy, tx, ty) {
+    const N = 15;
+    const baseW = rv.w * 2.2, tipW = 0.8;
+    const P = [];
+    for(let i=0; i<=N; i++) {
+      const t = i/N, it = 1-t;
+      const x = it*it*cx + 2*it*t*cpx + t*t*tx;
+      const y = it*it*cy + 2*it*t*cpy + t*t*ty;
+      const dx = 2*it*(cpx-cx) + 2*t*(tx-cpx);
+      const dy = 2*it*(cpy-cy) + 2*t*(ty-cpy);
+      const len = Math.hypot(dx,dy) || 1;
+      const nx = -dy/len, ny = dx/len;
+      const w = (baseW + (tipW-baseW)*t)/2;
+      P.push({x, y, nx, ny, w});
+    }
+    ctx.fillStyle = rv.c;
+    ctx.beginPath();
+    ctx.moveTo(P[0].x+P[0].nx*P[0].w, P[0].y+P[0].ny*P[0].w);
+    for(let i=1; i<=N; i++) ctx.lineTo(P[i].x+P[i].nx*P[i].w, P[i].y+P[i].ny*P[i].w);
+    for(let i=N; i>=0; i--) ctx.lineTo(P[i].x-P[i].nx*P[i].w, P[i].y-P[i].ny*P[i].w);
+    ctx.closePath();
+    ctx.fill();
+    // Highlight tipis di atas badan
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+    // Ring pemandu senar
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 1.2;
+    for(const gi of [4, 8]) {
+      const g = P[gi];
+      ctx.beginPath();
+      ctx.moveTo(g.x+g.nx*(g.w+1.5), g.y+g.ny*(g.w+1.5));
+      ctx.lineTo(g.x-g.nx*(g.w+1.5), g.y-g.ny*(g.w+1.5));
+      ctx.stroke();
+    }
+    // Tip ring
+    ctx.beginPath();
+    ctx.moveTo(P[N].x+P[N].nx*(P[N].w+1.5), P[N].y+P[N].ny*(P[N].w+1.5));
+    ctx.lineTo(P[N].x-P[N].nx*(P[N].w+1.5), P[N].y-P[N].ny*(P[N].w+1.5));
+    ctx.stroke();
+  }
+
+  // Gagang (handle) di pangkal
+  ctx.fillStyle = '#3a2417';
+  ctx.fillRect(rodBaseX-7, rodBaseY-2.6, 9, 5.2);
+  // Reel di gagang
+  ctx.fillStyle = '#555';
+  ctx.beginPath();
+  ctx.ellipse(rodBaseX+1, rodBaseY+3, 4.5, 6.5, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // Lunas (spool) reel
+  ctx.fillStyle = '#bbb';
+  ctx.beginPath();
+  ctx.arc(rodBaseX+1, rodBaseY+3, 2.4, 0, Math.PI*2);
+  ctx.fill();
+
+  // Badan joran mengecil ke ujung (taper)
+  const c1 = rodCtl();
+  drawRod(rodBaseX, rodBaseY, c1.x, c1.y, rodTipX, rodTipY);
 
   // Rod tip (flexible during fight)
   let tipX = rodTipX, tipY = rodTipY;
   if(state==='fighting') {
     const bend = tension / fightParams().cap;
     tipX = rodTipX - bend*20;
-    tipY = rodTipY + bend*25;
-    ctx.strokeStyle = '#8B4513';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(boatX+40, boatY-26);
-    ctx.quadraticCurveTo(boatX+40-bend*10, boatY-27, tipX, tipY);
-    ctx.stroke();
+    tipY = rodTipY + bend*26;
+    const c2 = rodCtl();
+    drawRod(rodBaseX, rodBaseY, c2.x - bend*12, c2.y + bend*20, tipX, tipY);
   }
 
   // Line + Bobber
