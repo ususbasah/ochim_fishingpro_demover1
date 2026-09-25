@@ -2,21 +2,41 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Ochim Pro - Simulasi Memancing</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow:hidden;height:100%;width:100%;position:fixed;top:0;left:0}
+html,body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow:hidden;width:100%;position:fixed;top:0;left:0;height:100%;height:100dvh}
 body{display:flex;flex-direction:column}
-header{background:linear-gradient(135deg,#0f3460,#16213e);padding:6px 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:2px solid #e94560}
-header h1{font-size:1em;color:#e94560;white-space:nowrap}
+header{background:linear-gradient(135deg,#0f3460,#16213e);padding:6px 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:2px solid #e94560;padding-top:env(safe-area-inset-top);}
 .hud{display:flex;gap:6px;align-items:center;font-size:.75em;flex-wrap:wrap}
-.hud span{background:rgba(0,0,0,.3);padding:2px 6px;border-radius:10px;white-space:nowrap}
+.hud span{background:rgba(0,0,0,.3);padding:2px 6px;border-radius:10px;white-space:nowrap;border:1px solid rgba(255,255,255,.08)}
 .hud b{color:#ffd700}
-.btn{background:#e94560;border:none;color:#fff;padding:4px 10px;border-radius:8px;cursor:pointer;font-size:.7em;transition:.2s;white-space:nowrap}
+.hud .hudDiff{padding:3px 10px;border-radius:12px}
+.btn{background:#e94560;border:none;color:#fff;padding:4px 10px;border-radius:8px;cursor:pointer;font-size:.7em;transition:.2s;white-space:nowrap;touch-action:manipulation;-webkit-tap-highlight-color:transparent;line-height:1;display:inline-flex;align-items:center;justify-content:center;height:26px}
 .btn:hover{background:#c73650;transform:scale(1.05)}
 .btn:disabled{background:#555;cursor:default;transform:none}
-main{flex:1;position:relative;overflow:hidden;min-height:0}
+.menuBtn{display:none;background:#0f3460;border:1px solid #e94560;font-weight:bold}
+#menuPanel{display:none;position:fixed;top:env(safe-area-inset-top);right:6px;z-index:60;background:rgba(15,52,96,.97);border:2px solid #e94560;border-radius:12px;padding:8px;flex-direction:column;gap:6px;width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+#menuPanel .btn{width:100%}
+@media(max-width:700px){
+  header{flex-wrap:nowrap;align-items:center;justify-content:space-between;padding:4px 6px}
+  .hud{flex:0 1 auto;overflow-x:auto;flex-wrap:nowrap;gap:4px;font-size:.6em;padding:2px 0;scrollbar-width:none}
+  .hud::-webkit-scrollbar{display:none}
+  .hud span{padding:2px 6px;border-radius:8px;flex-shrink:0}
+  .menuBtns{display:none}
+  .menuBtn{display:inline-flex}
+  #menuPanel.show{display:flex}
+}
+@media(min-width:701px){
+  #menuPanel{display:none!important}
+  .menuBtn{display:none!important}
+}
+main{flex:1;position:relative;overflow:hidden;min-height:0;padding-bottom:env(safe-area-inset-bottom)}
 canvas{width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
 #locBar{position:absolute;top:4px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:5;max-width:98%}
 .loc{background:rgba(0,0,0,.6);border:1px solid #555;padding:3px 8px;border-radius:8px;font-size:.65em;cursor:pointer;transition:.2s;color:#ccc;white-space:nowrap}
@@ -29,7 +49,7 @@ canvas{width:100%;height:100%;display:block;touch-action:none;user-select:none;-
 #msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:min(1.4em,4vw);font-weight:bold;text-shadow:0 0 20px rgba(0,0,0,.8);text-align:center;pointer-events:none;z-index:4;opacity:0;transition:opacity .3s;padding:0 10px}
 #bars{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:none;flex-direction:column;gap:6px;z-index:5}
 .barContainer{display:flex;flex-direction:column;align-items:center;gap:2px}
-.barTitle{font-size:min(.65em,2.5vw);font-weight:bold;text-align:center;text-shadow:0 0 6px rgba(0,0,0,.9);letter-spacing:1px}
+.barTitle{font-size:min(.65em,2.5vw);font-weight:bold;text-align:center;letter-spacing:1px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.25);color:#fff;padding:2px 6px;border-radius:8px;width:100%}
 .barWrap{width:30px;height:min(180px,40vh);background:rgba(0,0,0,.7);border-radius:15px;overflow:hidden;position:relative;border:2px solid #555}
 .barFill{position:absolute;bottom:0;width:100%;transition:height .15s;border-radius:0 0 13px 13px}
 .barValue{position:absolute;width:100%;text-align:center;bottom:4px;font-size:.6em;font-weight:bold;text-shadow:0 0 4px #000;z-index:2}
@@ -79,24 +99,36 @@ canvas{width:100%;height:100%;display:block;touch-action:none;user-select:none;-
   <small>Layar otomatis menjadi horizontal</small>
 </div>
 <header>
-  <h1>Ochim Pro</h1>
   <div class="hud">
     <span>Rp <b id="hMoney">1000</b></span>
     <span>Umpan: <b id="hBait">10</b></span>
     <span>Joran Lv.<b id="hRod">1</b></span>
     <span>Gulungan Lv.<b id="hReel">1</b></span>
     <span>Ikan: <b id="hFish">0</b></span>
-    <span style="background:rgba(0,0,0,.3);padding:3px 10px;border-radius:12px">Kesulitan: <b id="hDiff" style="color:#ffcc00">Sedang</b></span>
+    <span class="hudDiff">Kesulitan: <b id="hDiff" style="color:#ffcc00">Sedang</b></span>
   </div>
-  <button class="btn" onclick="cycleDifficulty()">Ganti Kesulitan</button>
-  <button class="btn" onclick="openShop()">Toko</button>
-  <button class="btn" onclick="openBag()">Keranjang</button>
-  <button class="btn" onclick="openAlbum()">Album Ikan</button>
-  <button class="btn" onclick="openHowTo()">Cara Bermain</button>
-  <button class="btn" onclick="openReset()" style="background:#333;font-size:.7em">Reset</button>
-  <button class="btn" onclick="openCheat()" style="background:#555;font-size:.7em">Cheat</button>
-  <button class="btn" onclick="doExit()" style="background:#222;font-size:.7em">Keluar</button>
+  <div class="menuBtns">
+    <button class="btn" onclick="cycleDifficulty()">Ganti Kesulitan</button>
+    <button class="btn" onclick="openShop()">Toko</button>
+    <button class="btn" onclick="openBag()">Keranjang</button>
+    <button class="btn" onclick="openAlbum()">Album Ikan</button>
+    <button class="btn" onclick="openHowTo()">Cara Bermain</button>
+    <button class="btn" onclick="openReset()" style="background:#333;font-size:.7em">Reset</button>
+    <button class="btn" onclick="openCheat()" style="background:#555;font-size:.7em">Cheat</button>
+    <button class="btn" onclick="doExit()" style="background:#222;font-size:.7em">Keluar</button>
+  </div>
+  <button class="btn menuBtn" onclick="toggleMenu()">☰ Menu</button>
 </header>
+<div id="menuPanel">
+  <button class="btn" onclick="cycleDifficulty();toggleMenu()">Ganti Kesulitan</button>
+  <button class="btn" onclick="openShop();toggleMenu()">Toko</button>
+  <button class="btn" onclick="openBag();toggleMenu()">Keranjang</button>
+  <button class="btn" onclick="openAlbum();toggleMenu()">Album Ikan</button>
+  <button class="btn" onclick="openHowTo();toggleMenu()">Cara Bermain</button>
+  <button class="btn" onclick="openReset();toggleMenu()" style="background:#333">Reset</button>
+  <button class="btn" onclick="openCheat();toggleMenu()" style="background:#555">Cheat</button>
+  <button class="btn" onclick="doExit();toggleMenu()" style="background:#222">Keluar</button>
+</div>
 <main>
   <div id="locBar"></div>
   <canvas id="gc"></canvas>
@@ -104,17 +136,17 @@ canvas{width:100%;height:100%;display:block;touch-action:none;user-select:none;-
   <div id="msg"></div>
   <div id="bars">
     <div class="barContainer">
-      <div class="barTitle" style="color:#000">TEGANGAN</div>
+      <div class="barTitle" style="color:#fff">TEGANGAN</div>
       <div class="barWrap"><div class="barFill" id="tensionFill" style="background:#44ff44"></div><div class="barValue" id="tensionVal" style="color:#fff">0%</div></div>
     </div>
     <div class="barContainer">
-      <div class="barTitle" style="color:#000">PROGRES</div>
+      <div class="barTitle" style="color:#fff">PROGRES</div>
       <div class="barWrap"><div class="barFill" id="progressFill" style="background:#00ccff"></div><div class="barValue" id="progressVal" style="color:#fff">0%</div></div>
     </div>
   </div>
   <div id="distWrap">
     <div class="barContainer">
-      <div class="barTitle" style="color:#000">JARAK</div>
+      <div class="barTitle" style="color:#fff">JARAK</div>
       <div class="barWrap"><div class="barFill" id="distFill" style="background:#ffaa00"></div><div class="barValue" id="distVal" style="color:#fff">60%</div></div>
     </div>
   </div>
@@ -127,15 +159,30 @@ const ctx = canvas.getContext('2d');
 let W, H;
 
 function resize() {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
   const r = canvas.parentElement.getBoundingClientRect();
-  W = canvas.width = r.width * devicePixelRatio;
-  H = canvas.height = r.height * devicePixelRatio;
-  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  W = canvas.width = Math.round(r.width * dpr);
+  H = canvas.height = Math.round(r.height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 resize();
 window.addEventListener('resize', resize);
-const cW = () => canvas.width / devicePixelRatio;
-const cH = () => canvas.height / devicePixelRatio;
+window.addEventListener('orientationchange', () => setTimeout(resize, 300));
+window.addEventListener('fullscreenchange', resize);
+if(window.visualViewport) window.visualViewport.addEventListener('resize', resize);
+const cW = () => canvas.width / Math.min(devicePixelRatio || 1, 2);
+const cH = () => canvas.height / Math.min(devicePixelRatio || 1, 2);
+
+// Menu HP
+function toggleMenu() {
+  document.getElementById('menuPanel').classList.toggle('show');
+}
+document.addEventListener('click', e => {
+  const p = document.getElementById('menuPanel');
+  if(p.classList.contains('show') && !e.target.closest('header') && !e.target.closest('#menuPanel')) {
+    p.classList.remove('show');
+  }
+});
 
 const LOCATIONS = [
   {id:'lake', name:'Danau Tenang', skyTop:'#87ceeb', skyBot:'#b0e0e6', waterTop:'#2e8b57', waterBot:'#1a5276', hill:'#2d5016'},
@@ -1011,35 +1058,67 @@ function render() {
     ctx.stroke();
   }
 
-  // Dock
-  ctx.fillStyle = '#5c3a1e';
-  ctx.fillRect(0, h*0.48, 180, 12);
-  ctx.fillStyle = '#4a2e16';
-  for(let i=0; i<3; i++) {
-    ctx.fillRect(30+i*55, h*0.48, 10, 40);
-  }
-  ctx.fillRect(0, h*0.5, 180, 8);
-
-  // Character on dock
-  ctx.fillStyle = '#2c1810';
-  ctx.fillRect(130, h*0.44, 8, 14);
+  // Perahu (boats) - orang memancing di atas perahu
+  const boatX = 150;
+  const boatY = h*0.55 + Math.sin(time*2)*2; // mengambang
+  // Air di sekitar perahu
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
   ctx.beginPath();
-  ctx.arc(134, h*0.42, 8, 0, Math.PI*2);
+  ctx.ellipse(boatX, boatY+18, 62, 8, 0, 0, Math.PI*2);
+  ctx.fill();
+  // Body perahu
+  ctx.fillStyle = '#6d4c2f';
+  ctx.beginPath();
+  ctx.moveTo(boatX-55, boatY);
+  ctx.lineTo(boatX+55, boatY);
+  ctx.lineTo(boatX+38, boatY+20);
+  ctx.lineTo(boatX-38, boatY+20);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#3e2723';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // Papan dalam perahu
+  ctx.strokeStyle = '#8d6e41';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(boatX-45, boatY-2);
+  ctx.lineTo(boatX+45, boatY-2);
+  ctx.stroke();
+  // Haluan/linggi detail
+  ctx.strokeStyle = '#4a2e16';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(boatX+52, boatY-4);
+  ctx.lineTo(boatX+55, boatY);
+  ctx.stroke();
+
+  // Karakter duduk di perahu
+  const manX = boatX + 8;
+  // Kepala
+  ctx.beginPath();
+  ctx.arc(manX, boatY-10, 7, 0, Math.PI*2);
   ctx.fillStyle = '#deb887';
   ctx.fill();
+  // Topi
   ctx.fillStyle = '#e94560';
   ctx.beginPath();
-  ctx.arc(134, h*0.405, 9, Math.PI, 0);
+  ctx.arc(manX, boatY-12, 8, Math.PI, 0);
   ctx.fill();
+  // Tubuh (duduk)
+  ctx.fillStyle = '#2c1810';
+  ctx.fillRect(manX-4, boatY-5, 8, 10);
 
-  // Rod
-  const rodTipX = 165;
-  const rodTipY = h*0.38;
+  // Rod (ujung tip dinamis)
+  const rodBaseX = manX + 3;
+  const rodBaseY = boatY - 3;
+  const rodTipX = boatX + 60;
+  const rodTipY = boatY - 24;
   ctx.strokeStyle = '#8B4513';
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(138, h*0.44);
-  ctx.quadraticCurveTo(155, h*0.36, rodTipX, rodTipY);
+  ctx.moveTo(rodBaseX, rodBaseY);
+  ctx.quadraticCurveTo(boatX+40, boatY-26, rodTipX, rodTipY);
   ctx.stroke();
 
   // Rod tip (flexible during fight)
@@ -1051,8 +1130,8 @@ function render() {
     ctx.strokeStyle = '#8B4513';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(155, h*0.36);
-    ctx.quadraticCurveTo(160-bend*10, h*0.37, tipX, tipY);
+    ctx.moveTo(boatX+40, boatY-26);
+    ctx.quadraticCurveTo(boatX+40-bend*10, boatY-27, tipX, tipY);
     ctx.stroke();
   }
 
@@ -1177,29 +1256,27 @@ buildLocBar();
 requestAnimationFrame(ts => { lastT = ts; gameLoop(ts); });
 
 // Otomatis landscape di HP: perlu fullscreen dulu sebelum kunci orientasi
+function lockLandscape() {
+  if(screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('landscape').catch(()=>{});
+  }
+}
+
 function startGame() {
   const el = document.documentElement;
   const fs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
   if(fs) {
     const p = fs.call(el);
     if(p && p.catch) p.catch(()=>{});
-    setTimeout(()=>{
-      if(screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock('landscape').catch(()=>{});
-      }
-    }, 300);
+    setTimeout(lockLandscape, 350);
   } else {
-    if(screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock('landscape').catch(()=>{});
-    }
+    lockLandscape();
   }
   document.getElementById('rotateOverlay').style.display = 'none';
+  setTimeout(resize, 400);
 }
 
-// Coba kunci layar ke landscape di HP
-if(screen.orientation && screen.orientation.lock) {
-  screen.orientation.lock('landscape').catch(()=>{});
-}
+lockLandscape();
 </script>
 </body>
 </html>
